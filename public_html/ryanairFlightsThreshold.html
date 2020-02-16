@@ -7,6 +7,7 @@
 
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.17.1/moment.min.js"></script>
+        <script src="ryanair-service.js"></script>
 
         <style>
             table, th, td {
@@ -22,6 +23,7 @@
             <label for="origin">Origine</label>
             <select id="origin">
                 <option value="BGY">Milano (Bergamo)</option>
+                <option value="MXP">Milano (Malpensa)</option>
                 <option value="PMO">Palermo</option>
             </select>
             <br />
@@ -29,19 +31,62 @@
             <select id="destination">
                 <option value="PMO">Palermo</option>
                 <option value="BGY">Milano (Bergamo)</option>
+                <option value="MXP">Milano (Malpensa)</option>
             </select>
             <br />
             <label for="dateOut">Data andata</label>
-            <input id="dateOut" type="text" placeholder="es. 01/01/2017" />
+            <input id="dateOut" type="text" value="01/01/2017" />
             <br />
             <label for="dateIn">Data ritorno</label>
-            <input id="dateIn" type="text" placeholder="es. 01/01/2017" />
+            <input id="dateIn" type="text" value="01/01/2017" />
             <br />
             <label for="weeksToScan">N. settimane da monitorare</label>
-            <input id="weeksToScan" type="text" />
+            <input id="weeksToScan" type="text" value="1" />
             <br />
             <label for="maxPrice">Prezzo massimo</label>
-            <input id="maxPrice" type="text" placeholder="es. 20.00" />
+            <input id="maxPrice" type="text" value="50" />
+            <br />
+            <label for="outDaysOfTheWeek">Giorni della settimana (andata)</label>
+            <br />
+            <select id="outDaysOfTheWeek" multiple="multiple" size="7">
+                <option value="1">Luned&igrave;</option>
+                <option value="2">Marted&igrave;</option>
+                <option value="3">Mercoled&igrave;</option>
+                <option value="4">Gioved&igrave;</option>
+                <option value="5">Venerd&igrave;</option>
+                <option value="6">Sabato</option>
+                <option value="0">Domenica</option>
+            </select>
+            <br />
+            <label for="inDaysOfTheWeek">Giorni della settimana (ritorno)</label>
+            <br />
+            <select id="inDaysOfTheWeek" multiple="multiple" size="7">
+                <option value="1">Luned&igrave;</option>
+                <option value="2">Marted&igrave;</option>
+                <option value="3">Mercoled&igrave;</option>
+                <option value="4">Gioved&igrave;</option>
+                <option value="5">Venerd&igrave;</option>
+                <option value="6">Sabato</option>
+                <option value="0">Domenica</option>
+            </select>
+            <br />
+            <label for="maxPrice">Ora partenza (andata)</label>
+            <br />
+            <select id="outTakeOffHours" multiple="multiple" size="4">
+                <option value="8">08:40</option>
+                <option value="13">13:15</option>
+                <option value="15">15:55</option>
+                <option value="19">19:50</option>
+            </select>
+            <br />
+            <label for="maxPrice">Ora partenza (ritorno)</label>
+            <br />
+            <select id="inTakeOffHours" multiple="multiple" size="4">
+                <option value="6">06:30</option>
+                <option value="13">13:45</option>
+                <option value="15">15:25</option>
+                <option value="22">22:00</option>
+            </select>
             <br />
             <button type="button" onclick="retrieveFlightsData();">Cerca</button>
         </div>
@@ -59,78 +104,6 @@
         </div>
 
         <div style="clear:both;"></div>
-
-        <script>
-            function retrieveFlightsData() {
-                var origin = $("#searchParams #origin").val();
-                var originName = $("#searchParams #origin option:selected").text();
-                var destination = $("#searchParams #destination").val();
-                var destinationName = $("#searchParams #destination option:selected").text();
-                var weeksToScan = parseInt($("#searchParams #weeksToScan").val());
-                var maxPrice = parseFloat($("#searchParams #maxPrice").val());
-
-                var dateOut = moment($("#searchParams #dateOut").val(), "DD/MM/YYYY");
-                var dateIn = moment($("#searchParams #dateIn").val(), "DD/MM/YYYY");
-
-                var datesDiffInDays = dateIn.diff(dateOut, 'days');
-
-                $("#flightsOut #flights").html("");
-                $("#flightsOut #flights").html("<tr><th>Data</th><th>Ora partenza</th><th>Ora arrivo</th><th>Volo</th><th>Standard</th><th>Leisure</th><th>Business</th></tr>");
-                $("#flightsBack #flights").html("");
-                $("#flightsBack #flights").html("<tr><th>Data</th><th>Ora partenza</th><th>Ora arrivo</th><th>Volo</th><th>Standard</th><th>Leisure</th><th>Business</th></tr>");
-                for (var i = 0; i < datesDiffInDays * 3; i++) {
-                    $("#flightsBack #flights").append("<tr><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>");
-                }
-
-                $("#flightsOut #origin").html(originName + " (" + origin + ")");
-                $("#flightsOut #destination").html(destinationName + " (" + destination + ")");
-                $("#flightsBack #origin").html(destinationName + " (" + destination + ")");
-                $("#flightsBack #destination").html(originName + " (" + origin + ")");
-
-                for (var i = 0; i < weeksToScan; i++) {
-                    var currentDateOut = dateOut.add(i * 7, 'days').format('YYYY-MM-DD');
-                    var currentDateIn = dateIn.add(i * 7, 'days').format('YYYY-MM-DD');
-
-                    $.ajax({
-                        type: "GET",
-                        url: "https://desktopapps.ryanair.com/it-it/availability?ADT=1&CHD=0&DateIn=" + currentDateIn + "&DateOut=" + currentDateOut + "&Destination=" + destination + "&FlexDaysIn=6&FlexDaysOut=6&INF=0&Origin=" + origin + "&RoundTrip=true&TEEN=0&exists=false",
-                        async: false
-                    }).done(function (flightsData) {
-                        var trips = flightsData.trips;
-
-                        handleTrip(trips[0], "flightsOut", maxPrice);
-                        handleTrip(trips[1], "flightsBack", maxPrice);
-                    });
-                }
-
-                for (var i = 0; i < datesDiffInDays * 3; i++) {
-                    $("#flightsOut #flights").append("<tr><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>");
-                }
-            }
-
-            function handleTrip(trip, targetDiv, maxPrice) {
-                var html = "";
-
-                trip.dates.forEach(function (date, index) {
-                    date.flights.forEach(function (flight, index) {
-                        var takeOffTime = moment(flight.time[0]);
-                        if (takeOffTime.day() === 0 || takeOffTime.day() === 6) {
-                            html += '<tr style="font-weight: bold;">';
-                        } else {
-                            html += '<tr>';
-                        }
-                        if (flight.regularFare !== undefined && flight.regularFare.fares[0].amount <= maxPrice && (flight.faresLeft > 0 || flight.faresLeft === -1)) {
-                            var faresLeft = flight.faresLeft > 0 ? ' (' + flight.faresLeft + ')' : '';
-                            html += '<td>' + takeOffTime.format('DD/MM/YYYY') + '</td><td>' + takeOffTime.format('HH:mm') + '</td><td>' + moment(flight.time[1]).format('HH:mm') + '</td><td>' + flight.flightNumber + '</td><td style="text-align: right;">€ ' + Number((flight.regularFare.fares[0].amount * 1.022).toFixed(2)) + faresLeft + '</td><td style="text-align: right;">€ ' + Number((flight.leisureFare.fares[0].amount * 1.022).toFixed(2)) + '</td><td style="text-align: right;">€ ' + Number((flight.businessFare.fares[0].amount * 1.022).toFixed(2)) + '</td></tr>';
-                        } else {
-                            html += '<td>' + takeOffTime.format('DD/MM/YYYY') + '</td><td>' + takeOffTime.format('HH:mm') + '</td><td>' + moment(flight.time[1]).format('HH:mm') + '</td><td>' + flight.flightNumber + '</td><td style="text-align: center;">-</td><td style="text-align: center;">-</td><td style="text-align: center;">-</td></tr>';
-                        }
-                    });
-                });
-
-                $("#" + targetDiv + " #flights").append(html);
-            }
-        </script>
 
     </body>
 
